@@ -1,0 +1,21 @@
+site_url::https://mobile.ventiahub.com.au/ClickMobileWEB/Authentication/Login.aspx?ReturnUrl=%2fClickMobileWEB%2fDefault.aspx
+name_1::Simon Timmers
+username_1::
+pass_1::
+email_1::
+name_2::Mike Richardson
+username_2::
+pass_2::
+email_2::
+name_3::Peter Richardson
+username_3::
+pass_3::
+email_3::
+google_maps_url::https://maps.google.com
+gmail_user::
+gmail_pwd::
+gmail_method::less-secure
+browser::Chrome
+test_email::
+email_subject::job updates
+email_content::We have found a new job assignment or the existing job has changed. Please find it attached.

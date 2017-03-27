@@ -1,0 +1,11 @@
+req/
+label.conf
+*.conf
+jobs.xlsx
+.idea/*
+.idea
+*.pyc
+invoice_*.xlsx
+*.csv
+
+
