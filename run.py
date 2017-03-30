@@ -596,7 +596,7 @@ def _disable_location_services(driver):
         logger.debug('location service aborted')
 
         WebDriverWait(driver, 2).until_not(EC.presence_of_element_located((
-            By.CSS_SELECTOR, '#checkBoxImg'))).click()
+            By.CSS_SELECTOR, '#checkBoxImg')))
         time.sleep(1)
     except TimeoutException:
         logger.debug('location service not loaded')
@@ -628,16 +628,19 @@ def _read_rows():
         return [row for row in rd]
 
 
-def _get_timestamp():
+def _get_timestamp(hours=False):
     import time
-    return time.strftime('%d%m%y', time.localtime())
 
+    if not hours:
+        return time.strftime('%d%m%y', time.localtime())
+    else:
+        return time.strftime('%d%m%y%H%M', time.localtime())
 
 if __name__ == '__main__':
     verbose = None
     test_mode = None
     log_file = None
-    run_mode = 'print'
+    scrape_iter = 5
 
     argv = sys.argv[1:]
     opts, args = getopt.getopt(argv, "ltvr:", ["log-file", "test", "verbose","run-mode="])
@@ -708,7 +711,7 @@ if __name__ == '__main__':
 
         address_urls = []
 
-        for i in range(1, 5):
+        for i in range(1, scrape_iter):
             logger.info('Scrape jobs begins for technician: {}. ({})'.format(technician[0], i))
             driver_ = start_driver()
             fetch_jobs, fetched_jobs_sheet, fetched_invoice_sheet = label(driver_, technician)
@@ -716,10 +719,15 @@ if __name__ == '__main__':
             if fetch_jobs:
                 break
             else:
+                if i == scrape_iter - 1:
+                    file_name = _get_timestamp() + '.png'
+                    logger.info('Taking screenshot: ' + file_name)
+                    driver_.save_screenshot('./screencaps/' + file_name)
                 driver_.delete_all_cookies()
                 driver_.close()
         else:
             logger.error('Did not scrape jobs')
+            driver_.quit()
             sys.exit()
 
         driver_.delete_all_cookies()
@@ -738,6 +746,7 @@ if __name__ == '__main__':
                     driver_.close()
             else:
                 logger.error('Did not get address from google maps')
+                driver_.quit()
                 sys.exit()
 
             driver_.delete_all_cookies()
@@ -754,6 +763,7 @@ if __name__ == '__main__':
                     driver_.close()
             else:
                 logger.error('Did not get FDH address from google maps')
+                driver_.quit()
                 sys.exit()
 
             driver_.delete_all_cookies()
