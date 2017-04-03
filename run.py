@@ -406,7 +406,7 @@ def gmaps(driver, fetched_jobs, address_pointer=None):
                 share = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, share_button)))
                 share.click()
             except TimeoutException:
-                logger.info('Failed to get addresses for address: {}. Google failed to find it.')
+                logger.info('Failed to get addresses for address: {}. Google failed to find it.'.format(address))
                 fetch_job_with_url.append("")
                 fetch_jobs_with_url.append(fetch_job_with_url)
 
@@ -478,7 +478,7 @@ def _wait_for_data_loaded(driver):
     loading = "#loadingPanel"
     _wait_for_loading_data(loading, driver)
 
-    for _ in range(60):
+    for _ in range(120):
         try:
             el = WebDriverWait(driver, 1).until(EC.presence_of_element_located((
                 By.CSS_SELECTOR, loading)))

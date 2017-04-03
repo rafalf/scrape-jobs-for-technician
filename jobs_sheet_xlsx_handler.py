@@ -1,12 +1,13 @@
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Border, Side, Alignment, Font
+from openpyxl.worksheet.worksheet import Worksheet
 
 import merged_cell_styling
 
 START_ROW = 1
 INTERVAL_ROW = 8
 DEFAULT_WIDTH = 12
-DEFAULT_HEIGHT = 16.5
+DEFAULT_HEIGHT = 17
 DEFAULT_MARGIN_LEFT = 0.1968503937
 DEFAULT_MARGIN_RIGHT = 0.1181102362
 DEFAULT_MARGIN_TOP = 0.7874015748
@@ -107,14 +108,14 @@ def write_jobs(jobs, worksheet, start_row=START_ROW):
 
 
 def resize_columns(worksheet):
-    worksheet.column_dimensions['A'].width = DEFAULT_WIDTH - 1.5
-    worksheet.column_dimensions['B'].width = DEFAULT_WIDTH + 7
-    worksheet.column_dimensions['C'].width = DEFAULT_WIDTH - 4.5
-    worksheet.column_dimensions['D'].width = DEFAULT_WIDTH + 10
-    worksheet.column_dimensions['E'].width = DEFAULT_WIDTH + 1
-    worksheet.column_dimensions['F'].width = DEFAULT_WIDTH
-    worksheet.column_dimensions['G'].width = DEFAULT_WIDTH - 4
-    worksheet.column_dimensions['H'].width = DEFAULT_WIDTH
+    worksheet.column_dimensions['A'].width = DEFAULT_WIDTH - 1.5 - 0.4
+    worksheet.column_dimensions['B'].width = DEFAULT_WIDTH + 7 - 0.4
+    worksheet.column_dimensions['C'].width = DEFAULT_WIDTH - 4.5 - 0.4
+    worksheet.column_dimensions['D'].width = DEFAULT_WIDTH + 10 - 0.4
+    worksheet.column_dimensions['E'].width = DEFAULT_WIDTH + 1 - 0.4
+    worksheet.column_dimensions['F'].width = DEFAULT_WIDTH - 0.4
+    worksheet.column_dimensions['G'].width = DEFAULT_WIDTH - 4 - 0.4
+    worksheet.column_dimensions['H'].width = DEFAULT_WIDTH - 0.4
 
     worksheet.page_margins.left = DEFAULT_MARGIN_LEFT
     worksheet.page_margins.right = DEFAULT_MARGIN_RIGHT
@@ -135,8 +136,11 @@ def create_file_and_write_to(jobs, file_location="jobs.xlsx"):
     wb = Workbook()
 
     ws = wb.active
-    resize_columns(ws)
+
+    ws.page_setup.paperSize = Worksheet.PAPERSIZE_A4
     ws.page_setup.fitToWidth = True
+
+    resize_columns(ws)
 
     write_jobs_and_save(wb, jobs, file_location)
 
