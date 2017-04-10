@@ -27,18 +27,21 @@ with open('label.conf') as hlr:
         split_line = line.split('::')
         cfg[split_line[0].strip()] = split_line[1].strip()
 
-chrome_options = webdriver.ChromeOptions()
-chrome_options.add_argument("--disable-notifications")
 
+chromeOptions = webdriver.ChromeOptions()
+prefs = {}
+prefs["credentials_enable_service"] = False
+prefs["password_manager_enabled"] = False
+chromeOptions.add_experimental_option("prefs", prefs)
 
 def start_driver():
 
     # driver
     if cfg['browser'] == 'Chrome-OSX':
-        driver = webdriver.Chrome(chrome_options=chrome_options)
+        driver = webdriver.Chrome(chrome_options=chromeOptions)
     elif cfg['browser'] == 'Chrome':
         driver_path = os.path.join(os.path.dirname(__file__), 'chromedriver.exe')
-        driver = webdriver.Chrome(driver_path, chrome_options=chrome_options)
+        driver = webdriver.Chrome(driver_path, chrome_options=chromeOptions)
     driver.maximize_window()
     return driver
 
