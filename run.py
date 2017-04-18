@@ -34,6 +34,7 @@ prefs["credentials_enable_service"] = False
 prefs["password_manager_enabled"] = False
 chromeOptions.add_experimental_option("prefs", prefs)
 
+
 def start_driver():
 
     # driver
@@ -643,7 +644,8 @@ if __name__ == '__main__':
     verbose = None
     test_mode = None
     log_file = None
-    scrape_iter = 5
+    retry = 6
+    run_mode = None
 
     argv = sys.argv[1:]
     opts, args = getopt.getopt(argv, "ltvr:", ["log-file", "test", "verbose","run-mode="])
@@ -679,22 +681,29 @@ if __name__ == '__main__':
     # update sheets
     if run_mode == 'email':
         now = datetime.now().time()
-        if time(7, 30) <= now <= time(19, 0):
-            logger.info('Time in range: 7:30 - 19:00')
+        if time(7, 0) <= now <= time(19, 0):
+            logger.info('Time in range: 7:00 - 19:00')
         else:
             logger.info('Time not in range: 7:30 - 19:00')
             sys.exit()
+    elif not run_mode:
+        logger.info('--run-mode, -r : not provided.')
+        sys.exit()
 
     # _create_temp()
 
     technicians = [[cfg['name_1'], cfg['username_1'], cfg['pass_1'], cfg['email_1']], [cfg['name_2'], cfg['username_2'],
                     cfg['pass_2'], cfg['email_2']], [cfg['name_3'], cfg['username_3'], cfg['pass_3'], cfg['email_3']]]
 
-    # invoice file if exists
+    # --------------------------------------------------------
+    # clean up - create a new invoice file or
+    #            break if invoice file if exists
+    # --------------------------------------------------------
+
     dirs = os.listdir(os.path.join(os.path.dirname(__file__), 'sheets'))
     for file_ in dirs:
         if file_.count('invoice'):
-            logger.info('Invoice file found: {}'.format(file_))
+            logger.info('Pre: Invoice file found: {}'.format(file_))
             invoice_file = './sheets/' + file_
             break
     else:
@@ -702,19 +711,29 @@ if __name__ == '__main__':
         invoice_file = './sheets/invoice_{}.xlsx'.format(timestamp)
         copyfile('./sheets/template.xlsx', invoice_file)
         # invoice_xlsx_handler.create_file_and_write_to([])
-        logger.info('Invoice file created: {}'.format(invoice_file))
+        logger.info('Pre: Invoice file created: {}'.format(invoice_file))
+
+    # --------------------------------------------------------
+    # clean up - create a new job file
+    # --------------------------------------------------------
 
     try:
         os.remove('./sheets/jobs.xlsx')
+        logger.info('Pre: Job file deleted')
     except OSError:
         pass
     jobs_sheet_xlsx_handler.create_file_and_write_to([], './sheets/jobs.xlsx')
+    logger.info('Pre: Job file created')
 
     for technician in technicians:
 
         address_urls = []
 
-        for i in range(1, scrape_iter):
+        # --------------------------------------------------------
+        #  Scrape jobs
+        # --------------------------------------------------------
+
+        for i in range(1, retry):
             logger.info('Scrape jobs begins for technician: {}. ({})'.format(technician[0], i))
             driver_ = start_driver()
             fetch_jobs, fetched_jobs_sheet, fetched_invoice_sheet = label(driver_, technician)
@@ -722,7 +741,7 @@ if __name__ == '__main__':
             if fetch_jobs:
                 break
             else:
-                if i == scrape_iter - 1:
+                if i == retry - 1:
                     file_name = _get_timestamp() + '.png'
                     logger.info('Taking screenshot: ' + file_name)
                     driver_.save_screenshot('./screencaps/' + file_name)
@@ -737,6 +756,10 @@ if __name__ == '__main__':
         driver_.close()
 
         if fetch_jobs != "NOJOBS":
+
+            # --------------------------------------------------------
+            #  Get address from google maps
+            # --------------------------------------------------------
 
             for i in range(1, 4):
                 logger.info('Get address from google maps for technician: {}. ({})'.format(technician[0], i))
@@ -754,6 +777,10 @@ if __name__ == '__main__':
 
             driver_.delete_all_cookies()
             driver_.close()
+
+            # --------------------------------------------------------
+            #  Get FDH address from google maps
+            # --------------------------------------------------------
 
             for i in range(1, 4):
                 logger.info('Get FDH address from google maps for technician: {}. ({})'.format(technician[0], i))
@@ -775,8 +802,12 @@ if __name__ == '__main__':
             existing_data = _read_rows()
             existing_data_no_timestamp = [data_[1:] for data_ in existing_data]
 
+            # --------------------------------------------------------
+            #  writing rows without maps url
+            # --------------------------------------------------------
+
             logger.info('Writing scraped jobs for technician: {}'.format(technician[0]))
-            # writing rows without maps url
+
             for job_counter, row in enumerate(jobs_with_url):
                 if row[1:-2] not in existing_data_no_timestamp:
                     logger.info('add scraped row: {}'.format(row))
@@ -794,30 +825,40 @@ if __name__ == '__main__':
                     logger.info('skip job sheet: \n {}'.format([fetched_jobs_sheet[job_counter]]))
                     logger.info('skip invoice sheet: \n {}'.format([fetched_invoice_sheet[job_counter]]))
 
-            # email per technician
-            if run_mode == 'email':
-                logger.info('Run mode: email')
-                if len(address_urls) > 0:
-                    if test_mode:
-                        recipient = cfg['test_email']
-                    else:
-                        recipient = technician[3]
-                    logger.info('Recipient: ' + recipient)
-                    email_handler._send_email(recipient, logger, address_urls, cfg)
+            logger.info('Run mode: {}'.format(run_mode))
 
-                    # create a new job file
-                    try:
-                        os.remove('./sheets/jobs.xlsx')
-                    except OSError:
-                        pass
-                    jobs_sheet_xlsx_handler.create_file_and_write_to([], './sheets/jobs.xlsx')
+            # --------------------------------------------------------
+            # Print
+            # --------------------------------------------------------
+            if run_mode == 'print':
+                print_file = os.path.join(os.path.dirname(__file__), 'sheets', 'jobs.xlsx')
+                os.startfile(print_file, "print")
+                logger.info('Sent to a printer: {} for a technician: {}'.format(print_file, technician[0]))
+
+            # --------------------------------------------------------
+            # Send email
+            # --------------------------------------------------------
+            if len(address_urls) > 0:
+                if test_mode:
+                    recipient = cfg['test_email']
+                else:
+                    recipient = technician[3]
+                logger.info('Recipient: ' + recipient)
+                email_handler._send_email(recipient, logger, address_urls, cfg)
+            else:
+                logger.info('No emails for recipient: ' + technician[0])
+
+            # --------------------------------------------------------
+            # clean up - create a new job file
+            # --------------------------------------------------------
+            try:
+                os.remove('./sheets/jobs.xlsx')
+                logger.info('Post: Job file deleted')
+            except OSError:
+                pass
+            jobs_sheet_xlsx_handler.create_file_and_write_to([], './sheets/jobs.xlsx')
+            logger.info('Post: Job file created')
         else:
             logger.info('No jobs --> No address for technician: {}. ({})'.format(technician[0], i))
-
-    if run_mode == 'print':
-        logger.info('Run mode: print')
-        print_file = os.path.join(os.path.dirname(__file__), 'sheets', 'jobs.xlsx')
-        os.startfile(print_file, "print")
-        logger.info('Sent to a printer: ' + print_file)
 
     driver_.quit()
